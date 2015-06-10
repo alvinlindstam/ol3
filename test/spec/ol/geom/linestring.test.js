@@ -255,6 +255,49 @@ describe('ol.geom.LineString', function() {
 
     });
 
+    describe('#getLength', function() {
+
+      it('returns the expected result', function() {
+        var midpoint = lineString.getLength();
+        expect(midpoint).to.roughlyEqual(11.6, 1e-1);
+      });
+
+    });
+
+    describe('#along', function() {
+
+      it('returns the expected result for midpoint', function() {
+        var point = lineString.along(0.5);
+        expect(point[0]).to.roughlyEqual(4, 1e-1);
+        expect(point[1]).to.roughlyEqual(2, 1e-1);
+        var closest = lineString.getClosestPoint(point);
+        expect(point[0]).to.roughlyEqual(closest[0], 1e-10);
+        expect(point[1]).to.roughlyEqual(closest[1], 1e-10);
+      });
+
+      it('returns the expected result for other float', function() {
+        var point = lineString.along(0.25);
+        expect(point[0]).to.roughlyEqual(2.162, 1e-3);
+        expect(point[1]).to.roughlyEqual(1.883, 1e-3);
+        var closest = lineString.getClosestPoint(point);
+        expect(point[0]).to.roughlyEqual(closest[0], 1e-10);
+        expect(point[1]).to.roughlyEqual(closest[1], 1e-10);
+      });
+
+      it('returns the expected result for fraction<=0', function() {
+        var point = lineString.along(0);
+        expect(point).to.eql(lineString.getFirstCoordinate().slice(0, 2));
+        expect(point).to.eql(lineString.along(-0.1));
+      });
+
+      it('returns the expected result for fraction>=1', function() {
+        var point = lineString.along(1);
+        expect(point).to.eql(lineString.getLastCoordinate().slice(0, 2));
+        expect(point).to.eql(lineString.along(1.1));
+      });
+
+    });
+
     describe('#getLastCoordinate', function() {
 
       it('returns the expected result', function() {

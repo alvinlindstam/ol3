@@ -192,6 +192,39 @@ ol.geom.LineString.prototype.getFlatMidpoint = function() {
 
 
 /**
+ * Return the coordinate at the given fraction of the linestring.
+ *
+ * The lengths are calculated on the projected plane.
+ * The returned geometry will be in ol.geom.GeometryLayout.XY, regardless of the
+ * geometry's layout.
+ *
+ * Passing a fraction less than 0 will return the first coordinate,
+ * a fraction higher than 1 will return the last.
+ *
+ * @param {number} fraction Fraction.
+ * @return {Array.<number>} Coordinate at fraction of line.
+ * @api
+ */
+ol.geom.LineString.prototype.along = function(fraction) {
+  if (fraction <= 0) {
+    return this.getFirstCoordinate();
+  }
+  if (fraction >= 1) {
+    return this.getLastCoordinate();
+  }
+
+  if (fraction == 0.5) {
+    return this.getFlatMidpoint().slice();
+  }
+
+  return ol.geom.flat.interpolate.lineString(
+      this.flatCoordinates, 0, this.flatCoordinates.length, this.stride,
+      fraction);
+
+};
+
+
+/**
  * @inheritDoc
  */
 ol.geom.LineString.prototype.getSimplifiedGeometryInternal =
