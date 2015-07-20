@@ -104,13 +104,6 @@ ol.interaction.Snap = function(opt_options) {
   this.pendingFeatures_ = {};
 
   /**
-   * Used for distance sorting in sortByDistance_
-   * @type {ol.Coordinate}
-   * @private
-   */
-  this.pixelCoordinate_ = null;
-
-  /**
    * @type {number}
    * @private
    */
@@ -118,11 +111,18 @@ ol.interaction.Snap = function(opt_options) {
       options.pixelTolerance : 10;
 
   /**
-   * @type {function(ol.interaction.Snap.SegmentDataType, ol.interaction.Snap.SegmentDataType): number}
+   * @type {number}
    * @private
    */
-  this.sortByDistance_ = goog.bind(ol.interaction.Snap.sortByDistance, this);
+  this.vertexPixelTolerance_ = goog.isDef(options.vertexPixelTolerance) ?
+      options.vertexPixelTolerance : this.pixelTolerance_;
 
+  /**
+   * @type {number}
+   * @private
+   */
+  this.edgePixelTolerance_ = goog.isDef(options.edgePixelTolerance) ?
+      options.edgePixelTolerance : this.pixelTolerance_;
 
   /**
   * Segment RTree for each layer
@@ -351,46 +351,79 @@ ol.interaction.Snap.prototype.shouldStopEvent = goog.functions.FALSE;
 
 
 /**
+ * @param {Array.<ol.interaction.Snap.SegmentDataType>} segments
+ * @param {ol.Coordinate} pixelCoordinate
+ * @return {?ol.Coordinate}
+ */
+ol.interaction.Snap.getClosestVertex = function(segments,
+    pixelCoordinate) {
+  var i, ii, squaredDistance;
+  var vertex = null;
+  var minSquaredDistance = Infinity;
+  for (i = 0; i < segments.length; i++) {
+    for (ii = 0; ii < 2; ii++) {
+      squaredDistance = ol.coordinate.squaredDistance(pixelCoordinate,
+          segments[i].segment[ii]);
+      if (squaredDistance < minSquaredDistance) {
+        minSquaredDistance = squaredDistance;
+        vertex = segments[i].segment[ii];
+      }
+    }
+  }
+  return vertex;
+};
+
+
+/**
+ * @param {Array.<ol.interaction.Snap.SegmentDataType>} segments
+ * @param {ol.Coordinate} pixelCoordinate
+ * @return {?ol.Coordinate}
+ */
+ol.interaction.Snap.getClosestEdge = function(segments,
+    pixelCoordinate) {
+  var i, squaredDistance;
+  var vertex = null;
+  var minSquaredDistance = Infinity;
+  for (i = 0; i < segments.length; i++) {
+    squaredDistance = ol.coordinate.squaredDistanceToSegment(pixelCoordinate,
+        segments[i].segment);
+    if (squaredDistance < minSquaredDistance) {
+      minSquaredDistance = squaredDistance;
+      vertex = ol.coordinate.closestOnSegment(pixelCoordinate,
+          segments[i].segment);
+    }
+  }
+  return vertex;
+};
+
+
+/**
  * @param {ol.Pixel} pixel Pixel
  * @param {ol.Coordinate} pixelCoordinate Coordinate
  * @param {ol.Map} map Map.
+ * @param {function(Array.<ol.interaction.Snap.SegmentDataType>, ol.Coordinate): ol.Coordinate} vertexFunction
+ * @param {number} pixelTolerance
  * @return {ol.interaction.Snap.ResultType} Snap result
  */
-ol.interaction.Snap.prototype.snapTo = function(pixel, pixelCoordinate, map) {
+ol.interaction.Snap.prototype.snapTo = function(pixel, pixelCoordinate,
+    map, vertexFunction, pixelTolerance) {
 
   var lowerLeft = map.getCoordinateFromPixel(
-      [pixel[0] - this.pixelTolerance_, pixel[1] + this.pixelTolerance_]);
+      [pixel[0] - pixelTolerance, pixel[1] + pixelTolerance]);
   var upperRight = map.getCoordinateFromPixel(
-      [pixel[0] + this.pixelTolerance_, pixel[1] - this.pixelTolerance_]);
+      [pixel[0] + pixelTolerance, pixel[1] - pixelTolerance]);
   var box = ol.extent.boundingExtent([lowerLeft, upperRight]);
 
   var segments = this.rBush_.getInExtent(box);
-  var snappedToVertex = false;
   var snapped = false;
   var vertex = null;
   var vertexPixel = null;
   if (segments.length > 0) {
-    this.pixelCoordinate_ = pixelCoordinate;
-    segments.sort(this.sortByDistance_);
-    var closestSegment = segments[0].segment;
-    vertex = (ol.coordinate.closestOnSegment(pixelCoordinate,
-        closestSegment));
+    vertex = vertexFunction(segments, pixelCoordinate);
     vertexPixel = map.getPixelFromCoordinate(vertex);
     if (Math.sqrt(ol.coordinate.squaredDistance(pixel, vertexPixel)) <=
-        this.pixelTolerance_) {
+        pixelTolerance) {
       snapped = true;
-      var pixel1 = map.getPixelFromCoordinate(closestSegment[0]);
-      var pixel2 = map.getPixelFromCoordinate(closestSegment[1]);
-      var squaredDist1 = ol.coordinate.squaredDistance(vertexPixel, pixel1);
-      var squaredDist2 = ol.coordinate.squaredDistance(vertexPixel, pixel2);
-      var dist = Math.sqrt(Math.min(squaredDist1, squaredDist2));
-      snappedToVertex = dist <= this.pixelTolerance_;
-      if (snappedToVertex) {
-        vertex = squaredDist1 > squaredDist2 ?
-            closestSegment[1] : closestSegment[0];
-        vertexPixel = map.getPixelFromCoordinate(vertex);
-        vertexPixel = [Math.round(vertexPixel[0]), Math.round(vertexPixel[1])];
-      }
     }
   }
   return /** @type {ol.interaction.Snap.ResultType} */ ({
@@ -581,7 +614,14 @@ ol.interaction.Snap.SegmentDataType;
  * @private
  */
 ol.interaction.Snap.handleEvent_ = function(evt) {
-  var result = this.snapTo(evt.pixel, evt.coordinate, evt.map);
+  var result = this.snapTo(evt.pixel, evt.coordinate, evt.map,
+      ol.interaction.Snap.getClosestVertex, this.vertexPixelTolerance_);
+
+  if (!result.snapped) {
+    result = this.snapTo(evt.pixel, evt.coordinate, evt.map,
+        ol.interaction.Snap.getClosestEdge, this.edgePixelTolerance_);
+  }
+
   if (result.snapped) {
     evt.coordinate = result.vertex.slice(0, 2);
     evt.pixel = result.vertexPixel;
@@ -603,19 +643,4 @@ ol.interaction.Snap.handleUpEvent_ = function(evt) {
     this.pendingFeatures_ = {};
   }
   return false;
-};
-
-
-/**
- * Sort segments by distance, helper function
- * @param {ol.interaction.Snap.SegmentDataType} a
- * @param {ol.interaction.Snap.SegmentDataType} b
- * @return {number}
- * @this {ol.interaction.Snap}
- */
-ol.interaction.Snap.sortByDistance = function(a, b) {
-  return ol.coordinate.squaredDistanceToSegment(
-      this.pixelCoordinate_, a.segment) -
-      ol.coordinate.squaredDistanceToSegment(
-      this.pixelCoordinate_, b.segment);
 };

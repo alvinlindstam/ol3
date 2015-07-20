@@ -2885,6 +2885,26 @@ olx.interaction.SnapOptions.prototype.pixelTolerance;
 
 
 /**
+ * Pixel tolerance for considering the pointer close enough to a vertex for
+ * editing. Default is the option `pixelTolerance`. Set to 0 or lower to disable
+ * snapping to vertices.
+ * @type {number|undefined}
+ * @api
+ */
+olx.interaction.SnapOptions.prototype.vertexPixelTolerance;
+
+
+/**
+ * Pixel tolerance for considering the pointer close enough to an edge for
+ * editing. Default is the option `pixelTolerance`. Set to 0 or lower to disable
+ * snapping to edges.
+ * @type {number|undefined}
+ * @api
+ */
+olx.interaction.SnapOptions.prototype.edgePixelTolerance;
+
+
+/**
  * Snap to features from this source. Either this option or features should be provided
  * @type {ol.source.Vector|undefined}
  * @api

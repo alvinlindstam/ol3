@@ -17,6 +17,8 @@ describe('ol.interaction.Snap', function() {
     var width = 360;
     var height = 180;
 
+    var simulateEvt;
+
     beforeEach(function(done) {
       target = document.createElement('div');
 
@@ -40,6 +42,16 @@ describe('ol.interaction.Snap', function() {
       map.on('postrender', function() {
         done();
       });
+
+      simulateEvt = function(pixel, snapInteraction) {
+        var event = {
+          pixel: pixel,
+          coordinate: map.getCoordinateFromPixel(pixel),
+          map: map
+        };
+        ol.interaction.Snap.handleEvent_.call(snapInteraction, event);
+        return event;
+      };
     });
 
     afterEach(function() {
@@ -54,14 +66,99 @@ describe('ol.interaction.Snap', function() {
       });
       snapInteraction.setMap(map);
 
-      var event = {
-        pixel: [width / 2, height / 2],
-        coordinate: [0, 0],
-        map: map
-      };
-      ol.interaction.Snap.handleEvent_.call(snapInteraction, event);
+      var event = simulateEvt([width / 2, height / 2], snapInteraction);
       // check that the coordinate is in XY and not XYZ
       expect(event.coordinate).to.eql([0, 0]);
+    });
+
+    describe('with LineString and Point', function() {
+      var lineString, point, features, midPixel;
+      beforeEach(function() {
+        midPixel = [width / 2, height / 2];
+
+        lineString = new ol.Feature(new ol.geom.LineString([
+          map.getCoordinateFromPixel([(width / 2) - 40, height / 2]),
+          map.getCoordinateFromPixel([(width / 2) + 40, height / 2])
+        ]));
+
+        point = new ol.Feature(new ol.geom.Point(
+            map.getCoordinateFromPixel([width / 2, (height / 2) - 1])));
+
+        features = new ol.Collection([point, lineString]);
+
+      });
+
+      describe('and different tolerances', function() {
+        var snapInteraction;
+        beforeEach(function() {
+          snapInteraction = new ol.interaction.Snap({
+            features: features,
+            pixelTolerance: 5,
+            vertexPixelTolerance: 10
+          });
+          snapInteraction.setMap(map);
+        });
+
+        it('snaps within normal tolerance for segment', function() {
+          var pixel = [(width / 2) + 20, (height / 2) + 5];
+          var event = simulateEvt(pixel, snapInteraction);
+
+          var snapped = [pixel[0], pixel[1] - 5];
+          expect(event.pixel).to.eql(snapped);
+          expect(event.coordinate).to.eql(map.getCoordinateFromPixel(snapped));
+        });
+
+        it('doesn\'t snap outside normal tolerance for segment', function() {
+          var pixel = [(width / 2) + 20, (height / 2) + 7];
+          event = simulateEvt(pixel, snapInteraction);
+
+          expect(event.pixel).to.eql(pixel);
+          expect(event.coordinate).to.eql(map.getCoordinateFromPixel(pixel));
+
+        });
+
+        it('snaps to vertice within the tolerance', function() {
+          var pixel = [(width / 2) + 35, (height / 2) + 7];
+          event = simulateEvt(pixel, snapInteraction);
+
+          var endPixel = [(width / 2) + 40, height / 2];
+          expect(event.pixel).to.eql(endPixel);
+          expect(event.coordinate).to.eql(map.getCoordinateFromPixel(endPixel));
+
+        });
+
+        it('prioritizes vertices', function() {
+          var pixel = [(width / 2), (height / 2) + 5];
+          var event = simulateEvt(pixel, snapInteraction);
+
+          var snapped = [width / 2, (height / 2) - 1];
+          expect(event.pixel).to.eql(snapped);
+          expect(event.coordinate).to.eql(map.getCoordinateFromPixel(snapped));
+        });
+
+      });
+
+      describe('and zero vertexPixelTolerance', function() {
+        var snapInteraction;
+        beforeEach(function() {
+          snapInteraction = new ol.interaction.Snap({
+            features: features,
+            vertexPixelTolerance: 0
+          });
+          snapInteraction.setMap(map);
+        });
+
+        it('does not snap to nearby vertex', function() {
+          var pixel = [(width / 2) + 38, (height / 2) + 1];
+          var event = simulateEvt(pixel, snapInteraction);
+
+          var snapped = [(width / 2) + 38, (height / 2)];
+          expect(event.pixel).to.eql(snapped);
+          expect(event.coordinate).to.eql(map.getCoordinateFromPixel(snapped));
+        });
+
+      });
+
     });
 
   });
@@ -73,4 +170,5 @@ goog.require('ol.Feature');
 goog.require('ol.Map');
 goog.require('ol.View');
 goog.require('ol.geom.Point');
+goog.require('ol.geom.LineString');
 goog.require('ol.interaction.Snap');
