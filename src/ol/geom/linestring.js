@@ -267,3 +267,22 @@ ol.geom.LineString.prototype.setFlatCoordinates = function(layout, flatCoordinat
   this.setFlatCoordinatesInternal(layout, flatCoordinates);
   this.changed();
 };
+
+/**
+ * Splice the coordinates of the linestring.
+ * @param {number} start Start index
+ * @param {number} deleteCount Duh
+ * @param {Array.<ol.Coordinate>=} opt_newCoordinates New coordinates.
+ * @api stable
+ */
+ol.geom.LineString.prototype.spliceCoordinates = function(start, deleteCount, opt_newCoordinates) {
+  var newCoordinates = [];
+  if (opt_newCoordinates) {
+    ol.geom.flat.deflate.coordinates(newCoordinates, 0, opt_newCoordinates, this.stride);
+  }
+  var spliceArgs = [start * this.stride, deleteCount * this.stride].concat(newCoordinates);
+  var flatRemoved = Array.prototype.splice.apply(this.flatCoordinates, spliceArgs);
+  var removed = ol.geom.flat.inflate.coordinates(flatRemoved, 0, flatRemoved.length, this.stride);
+  this.changed();
+  return removed;
+};
