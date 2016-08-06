@@ -323,3 +323,17 @@ ol.geom.MultiLineString.prototype.setLineStrings = function(lineStrings) {
   }
   this.setFlatCoordinates(layout, flatCoordinates, ends);
 };
+
+/**
+ * @param {number} lineString Index of the line string to modify
+ * @param {number} start Start Index
+ * @param {number} deleteCount Number of coordinates to remove
+ * @param {Array.<ol.Coordinate>=} opt_newCoordinates New coordinates to add.
+ * @return {Array.<ol.Coordinate>} Any deleted coordinates.
+ * @api
+ */
+ol.geom.MultiLineString.prototype.spliceCoordinates = function(lineString, start, deleteCount, opt_newCoordinates) {
+  var startInFlatCoordinates = lineString > 0 ? this.ends_[lineString - 1] / 4 : 0;
+  // todo: handle change in ends, should probably extract splicer to ol.geom.flat
+  return this.spliceCoordinatesInternal(startInFlatCoordinates + start, deleteCount, opt_newCoordinates)
+};

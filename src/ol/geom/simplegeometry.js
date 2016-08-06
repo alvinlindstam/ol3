@@ -248,6 +248,34 @@ ol.geom.SimpleGeometry.prototype.setLayout = function(layout, coordinates, nesti
   this.stride = stride;
 };
 
+/**
+ * Splice the coordinates of the geometry, like the `splice` method of JavaScript arrays.
+ *
+ * This method is a more efficient way to modify a geometry's coordinates than to use `getCoordinates`,
+ * modify the coordinates and then using `setCoordinates`. It can be used to insert, remove or replace
+ * coordinates.
+ *
+ * The `start` determines the zero based index at which to start modifying the coordinates. From this
+ * position, `deleteCound` coordinates will be removed, and any coordinates given in `opt_newCoordinates`
+ * will be inserted.
+ *
+ * @param {number} start Start index
+ * @param {number} deleteCount Number of coordinates to remove
+ * @param {Array.<ol.Coordinate>=} opt_newCoordinates New coordinates.
+ * @return {Array.<ol.Coordinate>} Any deleted coordinates. Will have the same length as `deleteCount`
+ */
+ol.geom.SimpleGeometry.prototype.spliceCoordinatesInternal = function(start, deleteCount, opt_newCoordinates) {
+
+  var newCoordinates = [];
+  if (opt_newCoordinates) {
+    ol.geom.flat.deflate.coordinates(newCoordinates, 0, opt_newCoordinates, this.stride);
+  }
+  var spliceArgs = [start * this.stride, deleteCount * this.stride].concat(newCoordinates);
+  var flatRemoved = Array.prototype.splice.apply(this.flatCoordinates, spliceArgs);
+  var removed = ol.geom.flat.inflate.coordinates(flatRemoved, 0, flatRemoved.length, this.stride);
+  this.changed();
+  return removed;
+};
 
 /**
  * @inheritDoc

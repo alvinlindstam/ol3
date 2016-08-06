@@ -279,6 +279,35 @@ describe('ol.geom.MultiLineString', function() {
 
     });
 
+    describe('#spliceCoordinates', function() {
+
+      it('can remove the first coordinate of the first linestring', function() {
+        var removed = multiLineString.spliceCoordinates(0, 0, 1);
+        expect(removed).to.eql([[1, 2, 3]]);
+        expect(multiLineString.getCoordinates()).to.eql([[[4, 5, 6]], [[7, 8, 9], [10, 11, 12]]]);
+        //expect(multiLineString.getCoordinates()).to.eql([[[1, 2, 3], [4, 5, 6]], [[7, 8, 9], [10, 11, 12]]]);
+      });
+
+      /*it('can remove the last coordinate', function() {
+        var removed = lineString.spliceCoordinates(5, 1);
+        expect(removed).to.eql([[7, 5]]);
+        expect(lineString.getCoordinates()).to.eql([[0, 0], [1.5, 1], [3, 3], [5, 1], [6, 3.5]]);
+      });
+
+      it('can insert coordinates', function() {
+        var removed = lineString.spliceCoordinates(3, 0, [[3, 4], [3, 5]]);
+        expect(removed).to.eql([]);
+        expect(lineString.getCoordinates()).to.eql([[0, 0], [1.5, 1], [3, 3], [3, 4], [3, 5], [5, 1], [6, 3.5], [7, 5]]);
+      });
+
+      it('can replace coordinates', function() {
+        var removed = lineString.spliceCoordinates(2, 1, [[3, 4]]);
+        expect(removed).to.eql([[3, 3]]);
+        expect(lineString.getCoordinates()).to.eql([[0, 0], [1.5, 1], [3, 4], [5, 1], [6, 3.5], [7, 5]]);
+      });*/
+
+    });
+
   });
 
   describe('construct with 4D coordinates', function() {
