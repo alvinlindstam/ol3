@@ -5,6 +5,7 @@ goog.require('ol.extent');
 goog.require('ol.geom.Geometry');
 goog.require('ol.geom.GeometryLayout');
 goog.require('ol.geom.flat.transform');
+goog.require('ol.geom.flat.splice');
 goog.require('ol.object');
 
 
@@ -265,14 +266,7 @@ ol.geom.SimpleGeometry.prototype.setLayout = function(layout, coordinates, nesti
  * @return {Array.<ol.Coordinate>} Any deleted coordinates. Will have the same length as `deleteCount`
  */
 ol.geom.SimpleGeometry.prototype.spliceCoordinatesInternal = function(start, deleteCount, opt_newCoordinates) {
-
-  var newCoordinates = [];
-  if (opt_newCoordinates) {
-    ol.geom.flat.deflate.coordinates(newCoordinates, 0, opt_newCoordinates, this.stride);
-  }
-  var spliceArgs = [start * this.stride, deleteCount * this.stride].concat(newCoordinates);
-  var flatRemoved = Array.prototype.splice.apply(this.flatCoordinates, spliceArgs);
-  var removed = ol.geom.flat.inflate.coordinates(flatRemoved, 0, flatRemoved.length, this.stride);
+  var removed = ol.geom.flat.splice.coordinates(this.flatCoordinates, this.stride, start, deleteCount, opt_newCoordinates);
   this.changed();
   return removed;
 };
