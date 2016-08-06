@@ -333,7 +333,7 @@ ol.geom.MultiLineString.prototype.setLineStrings = function(lineStrings) {
  * @api
  */
 ol.geom.MultiLineString.prototype.spliceCoordinates = function(lineString, start, deleteCount, opt_newCoordinates) {
-  var startInFlatCoordinates = lineString > 0 ? this.ends_[lineString - 1] / 4 : 0;
-  // todo: handle change in ends, should probably extract splicer to ol.geom.flat
-  return this.spliceCoordinatesInternal(startInFlatCoordinates + start, deleteCount, opt_newCoordinates)
+  var removed = ol.geom.flat.splice.coordinatess(this.flatCoordinates, this.stride, this.ends_, [lineString, start], deleteCount, opt_newCoordinates);
+  this.changed();
+  return removed;
 };
