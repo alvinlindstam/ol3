@@ -293,6 +293,12 @@ describe('ol.geom.MultiLineString', function() {
         expect(multiLineString.getCoordinates()).to.eql([[[1, 2, 3], [4, 5, 6]], [[10, 11, 12]]]);
       });
 
+      it('does not overflow across subgeometry boundaries', function() {
+        var removed = multiLineString.spliceCoordinates(0, 1, 2);
+        expect(removed).to.eql([[4, 5, 6]]);
+        expect(multiLineString.getCoordinates()).to.eql([[[1, 2, 3]], [[7, 8, 9], [10, 11, 12]]]);
+      });
+
       it('can remove the last coordinate of the first linestring', function() {
         var removed = multiLineString.spliceCoordinates(0, 1, 1);
         expect(removed).to.eql([[4, 5, 6]]);

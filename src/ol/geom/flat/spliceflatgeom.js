@@ -34,6 +34,7 @@ ol.geom.flat.splice.coordinatess = function(flatCoordinates, stride, ends, start
   var lineString = start[0];
   var startIndex = start[1];
   var startInFlatCoordinates = lineString > 0 ? ends[lineString - 1] / stride : 0;
+  deleteCount = Math.min((ends[lineString] - startInFlatCoordinates - startIndex * stride) / stride, deleteCount);
   var removed = ol.geom.flat.splice.coordinates(flatCoordinates, stride, startInFlatCoordinates + startIndex, deleteCount, opt_newCoordinates)
   var coordDiff = (opt_newCoordinates ? opt_newCoordinates.length : 0) - deleteCount;
   var endsDiff = coordDiff * stride;
